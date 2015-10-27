@@ -4,6 +4,14 @@
 ;; [TODO]
 ;; class-of/c, sub-class-of/c parent-class-of/c
 
+(defsection @contracts-runtime (:title "Contracts runtime library")
+  "Some basic contracts are included with this library."
+  ;; [TODO] how do we include documenattion about those here?
+  "Using those and combinators can get you far, but when your
+application grows you may require custom contracts to be
+build. Defining your own contract is easy, you need to create a
+function that takes one argument and returns a boolean value")
+
 (defparameter *contracts-library*
   '(progn
     (defun anyp () t)

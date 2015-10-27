@@ -1,6 +1,17 @@
 
 (in-package :contracts.paren)
 
+(defsection @contracts-combinators (:title "Contracts combinators")
+  "Combinators are parenscript macros used to combine more than one
+contract easily, combinator takes contracts as input and return a new
+contract."
+  )
+
+(defpsmacro instanceof/c (cls)
+  (let ((name (gensym)))
+    `(lambda (,name)
+       (instanceof ,name ,cls))))
+
 (defpsmacro or/c (&rest preds)
   "(>> (or/c intp floatp)) value should pass at least one predicate
 check"
@@ -15,7 +26,7 @@ check"
          res))))
 
 (defpsmacro and/c (&rest preds)
-  "(>> (and/c intp bigget-than-five)) value should pass all
+  "(>> (and/c intp bigger-than-five)) value should pass all
 predicates"
   (let ((name (gensym)))
     `(lambda (arg)
@@ -87,3 +98,11 @@ match the corresponding contract."
                (setf res f)
                (return))))
          res))))
+
+(defpsmacro maybe/c (pred)
+  "(maybe/c intp) is equal to (or/c undefp intp)"
+  (let ((name (gensym)))
+    `(lambda (,name)
+       (if (eq ,name undefined)
+           t
+           (,pred ,name)))))
