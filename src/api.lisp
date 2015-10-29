@@ -6,6 +6,8 @@
     :runtime *contracts-library*)
 
 (defsection @main-manual (:title "Functions with contracts for Parenscript")
+  (contracts.paren asdf:system)
+  
   "This library is inspired by contracts found in Racket programming
 langugage."
   

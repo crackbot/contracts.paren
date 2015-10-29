@@ -1,6 +1,14 @@
 # Functions with contracts for Parenscript
 
 ###### \[in package CONTRACTS.PAREN\]
+## contracts.paren ASDF System Details
+
+- Version: 0.0.2
+- Description: Contracts for parenscript (javascript), inspired by Racket contracts.
+- Licence: The MIT License (MIT)
+- Author: Crackbot <thecrackbot@gmail.com>
+- Maintainer: Crackbot <thecrackbot@gmail.com>
+
 This library is inspired by contracts found in Racket programming
 langugage.
 
