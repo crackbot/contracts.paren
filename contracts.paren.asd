@@ -13,4 +13,4 @@
                                      (:file "runtime")
                                      (:file "api")
                                      (:file "contracts"))))
-  :depends-on (:parenscript :serve.paren :mgl-pax :lisp-unit))
+  :depends-on (:parenscript :iterate :serve.paren :mgl-pax :lisp-unit))

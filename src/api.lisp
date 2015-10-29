@@ -28,16 +28,19 @@ guarantees on the values being returned from the function."
   (@api-manual section)
 
   (@contracts-runtime section)
-  (@contracts-combinators section))
+  (@contracts-combinators section)
+  (@contract-types section))
 
 (defsection @api-manual (:title "Main API")
   (lambda/contract psmacro)
   (defun/contract psmacro)
-
+  
   "When contract is violated it will call the *VIOLATION-FUNCTION*
 which you need to define inside your code base"
 
-  (*violation-function* variable))
+  (*violation-function* variable)
+
+  (*ignore-contracts* variable))
 
 (defparameter *ignore-contracts* nil
   "This is useful if you want to ignore contracts when compiling your

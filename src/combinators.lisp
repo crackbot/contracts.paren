@@ -3,8 +3,8 @@
 
 (defsection @contract-types (:title "Available contract types")
   ">> flat contracts"
-  ">>* contract for functions with optional arguments or arbitrary many arguments"
-  ">>i - named dependant contracts")
+  "\>\>\* contract for functions with optional arguments or arbitrary many arguments"
+  "\>\>i - named dependant contracts")
 
 (defparameter *violation-function* 'blame
   "Function that is called when contract violation is detected, it's

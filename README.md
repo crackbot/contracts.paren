@@ -34,6 +34,13 @@ which you need to define inside your code base
     Function that is called when contract violation is detected, it's
     arguments are based on combinator type
 
+- [variable] *IGNORE-CONTRACTS* NIL
+
+    This is useful if you want to ignore contracts when compiling your
+    definitions for production use and don't want to extra performance
+    costs because of contracts. Setting this to t will compile
+    defun/contract and lambda/contract as the usual defun and lambda.
+
 ## Contracts runtime library
 
 Some basic contracts are included with this library.
@@ -48,3 +55,14 @@ function that takes one argument and returns a boolean value
 Combinators are parenscript macros used to combine more than one
 contract easily, combinator takes contracts as input and return a new
 contract.
+
+## Available contract types
+
+        flat contracts
+
+
+        - contract for functions with optional arguments or arbitrary many arguments
+
+
+        i - named dependant contracts
+
