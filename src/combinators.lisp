@@ -95,23 +95,22 @@
 
   Combinator signature is:
 
-  ```lisp
+```lisp
   (>>i (domain contracts)
-       (optional or keywords)
-       :rest () ()
+       (optional / keywords / rest)
        :pre () ()
        :post () ()
-       (range contract))
-  ```
+       (result contract))
+```
 
-  ```lisp
-  (->i ((x number?)
+```lisp
+  (->i :pre () (set! c0 count)
+       ((x number?)
         (y (x) (>=/c x)))
        (:a (a number?)
         :b (b (a) (>=/c a)))
-       :pre () (set! c0 count)
-       :post (id nn) (string=? (name id) nn)
-     (result (x y) (and/c number? (>=/c (+ x y)))))
+       (result (x y) (and/c number? (>=/c (+ x y))))
+       :post (id nn result) (string=? (name id) nn))
 ```lisp
 ")
 

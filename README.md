@@ -40,23 +40,65 @@ monitoring system performs contract checks, making sure the partners
 abide by the established contract.
 
 In ParenScript (unlike in Racket) contracts can be defined only at
-function level. Those contracts impose constraints and provide
-guarantees on the values being returned from the function.
+lambda/function level. Those contracts impose constraints and
+provide guarantees on the values being returned from the
+function. There are some differences in both implementation and
+usage between ParenScript and Racket, so make sure to read the docs
+even if you're familiar with Racket contracts.
+
+ParenScript f*unction* definition supports positional arguments, &key,
+&optional, &rest. &optional and &keywoard does not work well
+together, also when you include &rest and &key expect &rest variable
+to capture input passed into &key, you need to remember this things
+when writing contracts.
+
+Simple function definition with two positional arguments looks like
+so:
+
+```lisp
+(defun sum (x y)
+  (+ x y))
+```
+
+To make this a function with contract you can use [`DEFUN/CONTRACT`][0319] form:
+
+```lisp
+(defun/contract sum (x y)
+  (>> intp intp intp)
+  (+ x y))
+```
+
+In the code above each **intp** is called a contract and **>>** sign
+is called a contract combinator. Right now there are three types of
+contract combinators, and numerous contracts that can be used.
 
 <a name='x-28CONTRACTS-2EPAREN-3A-40API-MANUAL-20MGL-PAX-3ASECTION-29'></a>
 
 ## 2 Main API
 
-<a name='x-28CONTRACTS-2EPAREN-3ALAMBDA-2FCONTRACT-20-23-3APSMACRO-29'></a>
+API consists of two parenscript macros **defun/contract** and
+**lambda/contract** both are based on core **defun** and **lambda**
+taking exactly the same lambda list and body. Except first form of the
+body should be a contract.
+
+<a name='x-28CONTRACTS-2EPAREN-3ALAMBDA-2FCONTRACT-20MGL-PAX-3APSMACRO-29'></a>
 
 - [psmacro] ***LAMBDA/CONTRACT*** *LAMBDA-LIST &BODY BODY* 
 
-<a name='x-28CONTRACTS-2EPAREN-3ADEFUN-2FCONTRACT-20-23-3APSMACRO-29'></a>
+<a name='x-28CONTRACTS-2EPAREN-3ADEFUN-2FCONTRACT-20MGL-PAX-3APSMACRO-29'></a>
 
 - [psmacro] ***DEFUN/CONTRACT*** *NAME LAMBDA-LIST &BODY BODY* 
 
-When contract is violated it will call the [`*VIOLATION-FUNCTION*`][78df]
-which you need to define inside your code base
+There are a number of variables you can configure. Most important
+one is [`*VIOLATION-FUNCTION*`][78df], it is called in javascript env when
+contract is violated. You can use something basic as a starting point, like
+
+```javascript
+function blame () {
+    var args = 
+}
+```
+
 
 <a name='x-28CONTRACTS-2EPAREN-3A-2AVIOLATION-FUNCTION-2A-20VARIABLE-29'></a>
 
@@ -70,9 +112,10 @@ which you need to define inside your code base
 - [variable] **\*IGNORE-CONTRACTS\*** *NIL*
 
     This is useful if you want to ignore contracts when compiling your
-    definitions for production use and don't want to extra performance
-    costs because of contracts. Setting this to t will compile
-    defun/contract and lambda/contract as the usual defun and lambda.
+    definitions for production use and don't want to pay extra
+    performance costs because of contracts. Setting this to **t** will
+    compile [`DEFUN/CONTRACT`][0319] and [`LAMBDA/CONTRACT`][c9be] as the usual defun and
+    lambda forms.
 
 <a name='x-28CONTRACTS-2EPAREN-3A-40CONTRACT-TYPES-20MGL-PAX-3ASECTION-29'></a>
 
@@ -178,23 +221,22 @@ Named contracts is similar to optional combinator with the
 
 Combinator signature is:
 
-`lisp
+```lisp
   (>>i (domain contracts)
-       (optional or keywords)
-       :rest () ()
+       (optional / keywords / rest)
        :pre () ()
        :post () ()
-       (range contract))
-`
+       (result contract))
+```
 
-  `lisp
-  (->i ((x number?)
+`lisp
+  (->i :pre () (set! c0 count)
+       ((x number?)
         (y (x) (>=/c x)))
        (:a (a number?)
         :b (b (a) (>=/c a)))
-       :pre () (set! c0 count)
-       :post (id nn) (string=? (name id) nn)
-     (result (x y) (and/c number? (>=/c (+ x y)))))
+       (result (x y) (and/c number? (>=/c (+ x y))))
+       :post (id nn result) (string=? (name id) nn))
 `lisp
 
 <a name='x-28CONTRACTS-2EPAREN-3A-40CONTRACTS-RUNTIME-20MGL-PAX-3ASECTION-29'></a>
@@ -266,6 +308,7 @@ contract.
 
 - [psmacro] ***MAYBE/C*** *PRED* 
 
+  [0319]: #x-28CONTRACTS-2EPAREN-3ADEFUN-2FCONTRACT-20MGL-PAX-3APSMACRO-29 "(CONTRACTS.PAREN:DEFUN/CONTRACT MGL-PAX:PSMACRO)"
   [0d79]: #x-28CONTRACTS-2EPAREN-3A-40CONTRACTS-COMBINATORS-20MGL-PAX-3ASECTION-29 "(CONTRACTS.PAREN:@CONTRACTS-COMBINATORS MGL-PAX:SECTION)"
   [1fde]: #x-28-22contracts-2Eparen-22-20ASDF-2FSYSTEM-3ASYSTEM-29 "(\"contracts.paren\" ASDF/SYSTEM:SYSTEM)"
   [3e8b]: #x-28CONTRACTS-2EPAREN-3A-40API-MANUAL-20MGL-PAX-3ASECTION-29 "(CONTRACTS.PAREN:@API-MANUAL MGL-PAX:SECTION)"
@@ -274,4 +317,5 @@ contract.
   [7e60]: #x-28CONTRACTS-2EPAREN-3A-40CONTRACTS-RUNTIME-20MGL-PAX-3ASECTION-29 "(CONTRACTS.PAREN:@CONTRACTS-RUNTIME MGL-PAX:SECTION)"
   [c50a]: #x-28CONTRACTS-2EPAREN-3A-40FULL-CONTRACTS-20MGL-PAX-3ASECTION-29 "(CONTRACTS.PAREN:@FULL-CONTRACTS MGL-PAX:SECTION)"
   [c8ae]: #x-28CONTRACTS-2EPAREN-3A-40NAMED-CONTRACTS-20MGL-PAX-3ASECTION-29 "(CONTRACTS.PAREN:@NAMED-CONTRACTS MGL-PAX:SECTION)"
+  [c9be]: #x-28CONTRACTS-2EPAREN-3ALAMBDA-2FCONTRACT-20MGL-PAX-3APSMACRO-29 "(CONTRACTS.PAREN:LAMBDA/CONTRACT MGL-PAX:PSMACRO)"
   [ca08]: #x-28CONTRACTS-2EPAREN-3A-40FLAT-CONTRACTS-20MGL-PAX-3ASECTION-29 "(CONTRACTS.PAREN:@FLAT-CONTRACTS MGL-PAX:SECTION)"

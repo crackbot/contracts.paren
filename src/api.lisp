@@ -30,7 +30,7 @@
   usage between ParenScript and Racket, so make sure to read the docs
   even if you're familiar with Racket contracts.
 
-  ParenScript function definition supports positional arguments, &key,
+  ParenScript f*unction* definition supports positional arguments, &key,
   &optional, &rest. &optional and &keywoard does not work well
   together, also when you include &rest and &key expect &rest variable
   to capture input passed into &key, you need to remember this things
@@ -62,11 +62,24 @@
   (@contracts-combinators section))
 
 (defsection @api-manual (:title "Main API")
+  "API consists of two parenscript macros **defun/contract** and
+**lambda/contract** both are based on core **defun** and **lambda**
+taking exactly the same lambda list and body. Except first form of the
+body should be a contract."
+  
   (lambda/contract psmacro)
   (defun/contract psmacro)
   
-  "When contract is violated it will call the *VIOLATION-FUNCTION*
-  which you need to define inside your code base."
+  "There are a number of variables you can configure. Most important
+one is *VIOLATION-FUNCTION*, it is called in javascript env when
+contract is violated. You can use something basic as a starting point, like
+
+```javascript
+function blame () {
+    var args = 
+}
+```
+"
 
   (*violation-function* variable)
 
