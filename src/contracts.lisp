@@ -3,9 +3,18 @@
 
 (defsection @contracts-combinators (:title "Contracts combinators")
   "Combinators are parenscript macros used to combine more than one
-contract easily, combinator takes contracts as input and return a new
+contract easily, combinator takes contract(s) as input and return a new
 contract."
-  )
+
+  (instanceof/c psmacro)
+  (or/c psmacro)
+  (and/c psmacro)
+  (not/c psmacro)
+  (listof/c psmacro)
+  (oneof/c psmacro)
+  (list/c psmacro)
+  (object/c psmacro)
+  (maybe/c psmacro))
 
 (defpsmacro instanceof/c (cls)
   (let ((name (gensym)))

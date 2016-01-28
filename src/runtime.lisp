@@ -5,12 +5,46 @@
 ;; class-of/c, sub-class-of/c parent-class-of/c
 
 (defsection @contracts-runtime (:title "Contracts runtime library")
-  "Some basic contracts are included with this library."
+  "Some basic contracts are included with this library:"
+
+  
+
+;; - [contract] *anyp*
+;; - [contract] *hasp* key obj
+;; - [contract] *emptyp* obj
+;; - [contract] *elementp* obj
+;; - [contract] *truep* obj
+;; - [contract] *booleanp* obj
+;; - [contract] *nanp* obj
+;; - [contract] *eventp* arg
+;; - [contract] *classp* arg
+;; - [contract] *objectp* arg
+;; - [contract] *nullp* arg
+;; - [contract] *undefp* arg
+;; - [contract] *zerop* num
+;; - [contract] *positivep* num
+;; - [contract] *negativep* num
+
   ;; [TODO] how do we include documenattion about those here?
+  
   "Using those and combinators can get you far, but when your
 application grows you may require custom contracts to be
 build. Defining your own contract is easy, you need to create a
-function that takes one argument and returns a boolean value")
+function that takes one argument and returns a boolean value.
+
+For example to create a contract that checks if argument is a DOM node
+you can do the following:
+
+```lisp
+(defun nodep (obj)
+  (if (eq (typeof *node) \"object\")
+      (instanceof obj *node)
+      (and obj
+           (eq (typeof o) \"object\")
+           (eq (chain o node-type) \"number\")
+           (eq (chain o node-name) \"string\"))))
+```
+")
 
 (defparameter *contracts-library*
   '(progn
@@ -51,6 +85,9 @@ function that takes one argument and returns a boolean value")
     (gen-pred-check date)
     (gen-pred-check array)
 
+    (defun truep (obj)
+      (eq obj t))
+    
     (defun booleanp (obj)
       (or (eql obj t) (eql obj f)))
     

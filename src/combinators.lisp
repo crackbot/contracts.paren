@@ -1,10 +1,119 @@
 
 (in-package :contracts.paren)
 
-(defsection @contract-types (:title "Available contract types")
-  ">> flat contracts"
-  "\>\>\* contract for functions with optional arguments or arbitrary many arguments"
-  "\>\>i - named dependant contracts")
+(defsection @contract-types (:title "Contract types")
+  "There are three types of contracts:
+  - >> flat contracts
+
+  - >>* full contracts, contract for functions with optional arguments
+        or/and arbitrary many arguments or/and :pre :post clauses
+
+  - >>i named dependent contracts, where names you give to contracts
+      can be used in subcontracts or/and :pre :post clauses"
+
+  (@flat-contracts section)
+  (@full-contracts section)
+  (@named-contracts section))
+
+(defsection @flat-contracts (:title "Flat contracts")
+  "Flat contract is the basic building block, most of the time you
+  will be using it. It suports positional and keyword arguments.
+
+```lisp
+  (defun hello (x y)
+    (>> intp intp intp)
+    (+ x y))
+```
+
+```lisp
+  (defun hello (x y &key (add 2))
+    (>> intp intp :add intp intp)
+    (+ (+ x y) add))
+```
+
+  Flat contract does support all of the combinators, but not optional
+  or rest arguments.")
+
+(defsection @full-contracts (:title "Full contracts")
+  "You can use this combinator type to check more advanced function
+  signatures, which includes one or more of optional, keyword or
+  arbitrary many arguments.
+
+  Combinator signature is:
+
+```lisp
+  (>>* (domain contracts)
+       (optional / keywords / rest)
+       :pre () :post ()
+       range contract)
+```
+
+  Domain and range contracts are required. If you provide optional or
+  keyword contract it should be a plist of variable name and
+  contract, you can also skip providing those contracts for variable
+  that you don't want to check, unlike domain contracts where you need
+  to provide a contract for every variable. If you don't want to
+  provide any contracts for those, just pass the nil
+
+```lisp
+  (>>* (intp) (:keyword floatp) intp)
+```
+
+```lisp
+  (>>* (intp) nil intp)
+``` 
+
+  If :rest is present it is expected to check the &rest arguments
+
+  :pre and :post expect a lambda which should return either a boolean
+  value or a string, in case it returns **f** or a string it's treated
+  as a failure and string designates an error message. :pre will be
+  dispatched before any contract and :post after checking all provided
+  ones. This allows you to check the function environment without any
+  connection to function domain or range.
+
+  An example, checking that function saves the return value:
+
+```lisp
+  (defun/contract sum (x y)
+    (>>* (intp intp) 
+         :post (lambda ()
+                 (intp (chain this result)))
+         intp)
+    (let ((res (+ x y)))
+      (setf (chain this result) res)
+      res))
+```")
+
+(defsection @named-contracts (:title "Named contracts - not implemented")
+  "Named contracts is similar to optional combinator with the
+  difference that the ->i contract combinator differs from the ->*
+  combinator in that each argument and result is named and these names
+  can be used in the subcontracts and in the pre-/post-condition
+  clauses. In other words, ->i expresses dependencies among arguments
+  and results.
+
+  Combinator signature is:
+
+  ```lisp
+  (>>i (domain contracts)
+       (optional or keywords)
+       :rest () ()
+       :pre () ()
+       :post () ()
+       (range contract))
+  ```
+
+  ```lisp
+  (->i ((x number?)
+        (y (x) (>=/c x)))
+       (:a (a number?)
+        :b (b (a) (>=/c a)))
+       :pre () (set! c0 count)
+       :post (id nn) (string=? (name id) nn)
+     (result (x y) (and/c number? (>=/c (+ x y)))))
+```lisp
+")
 
 (defparameter *violation-function* 'blame
   "Function that is called when contract violation is detected, it's
@@ -89,14 +198,29 @@ contract strutures. Type can be :input or :output."
 
 (defmethod input-contracts ((combinator-type (eql '>>*)) combinator lambda-list)
   "PS Input contract forms for >>* combinator"
-  (flet ((more-contracts-fn (optional-contracts optionals keys rest)
-           (declare (ignore keys))
-           (construct-contacts (append optionals (list rest))
-                                            optional-contracts)))
+  (flet ((more-contracts-fn (more-contracts optionals keys rest)
+           "more-contracts can have optionals, keys and rest, it is a
+            plist with input variable name and a contract."
+           (when (not (listp rest))
+             (setf rest (list rest)))
+           ;; since checks are optional, don't check it
+           ;; (assert (eql (/ (length more-contracts) 2)
+           ;;              (apply #'+ (mapcar #'length
+           ;;                                 (list optionals keys rest)))))
+           (let ((res (list)))
+             (dolist (type (list optionals keys rest))
+               (dolist (var type)
+                 (when-let ((contract (getf more-contracts
+                                            (alexandria:make-keyword var))))
+                   (pushnew (make-contract :variable var
+                                           :contract contract
+                                           :type :input)
+                            res))))
+             res)))
   (input-contracts-for-requireds combinator-type
-                                   combinator
-                                   lambda-list
-                                   #'more-contracts-fn)))
+                                 combinator
+                                 lambda-list
+                                 #'more-contracts-fn)))
 
 (defmethod input-contracts ((combinator-type (eql '>>i)) combinator lambda-list)
   "PS Input contract forms for >>i combinator"
@@ -161,8 +285,16 @@ javascript object and can be used for contract violation message"
     (cons 'create obj)))
 
 (defun flat-contractp (contract)
-  "Boolean check if the contract is flat. Flat contract is immediatley
-checkable, without any modifications to values that it checks"
+  "Boolean check if the contract is flat. Flat contract doesn't
+include any subcontracts. For example non flat contract looks like
+this:
+
+  ```lisp
+  (defun/contract (x y)
+    (>> (>> intp intp)
+        any
+        any))
+  ```"
   (if (listp (contract-contract contract))
       (not (combinator-supported-p (car (contract-contract contract))))
       t))
@@ -239,3 +371,28 @@ checkable, without any modifications to values that it checks"
       (if (eql (car combinator) '>>i)
           (dependant-contract-check defun-name input-lambda-list contract)
           (check-form-for-contract defun-name contract)))))
+
+(defun combinator-supports-pre-post (comb)
+  (or (eql comb '>>*) (eql comb '>>i)))
+
+(defun build-env-clause (defun-name clause combinator)
+  (when (combinator-supports-pre-post (car combinator))
+    (when-let ((pos (position clause combinator)))
+      (let* ((contract (nth (+ 1 pos) combinator))
+             (form (check-form-for-contract defun-name
+                                            (make-contract :variable nil
+                                                           :contract contract
+                                                           :type :input))))
+        (setf combinator (delete contract combinator))
+        (setf combinator (delete clause combinator))
+        form))))
+
+(defun build-pre (defun-name combinator)
+  "If combinator type supports :pre clause it will build appropriate
+  verification code."
+  (build-env-clause defun-name :pre combinator))
+
+(defun build-post (defun-name combinator)
+  "If combinator type supports :post clause it will build appropriate
+  verification code."
+  (build-env-clause defun-name :post combinator))
