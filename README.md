@@ -229,7 +229,9 @@ Combinator signature is:
        (result contract))
 ```
 
-`lisp
+Example:
+
+```lisp
   (->i :pre () (set! c0 count)
        ((x number?)
         (y (x) (>=/c x)))
@@ -237,7 +239,8 @@ Combinator signature is:
         :b (b (a) (>=/c a)))
        (result (x y) (and/c number? (>=/c (+ x y))))
        :post (id nn result) (string=? (name id) nn))
-`lisp
+```
+
 
 <a name='x-28CONTRACTS-2EPAREN-3A-40CONTRACTS-RUNTIME-20MGL-PAX-3ASECTION-29'></a>
 

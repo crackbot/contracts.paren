@@ -103,6 +103,8 @@
        (result contract))
 ```
 
+  Example:
+
 ```lisp
   (->i :pre () (set! c0 count)
        ((x number?)
@@ -111,7 +113,7 @@
         :b (b (a) (>=/c a)))
        (result (x y) (and/c number? (>=/c (+ x y))))
        :post (id nn result) (string=? (name id) nn))
-```lisp
+```
 ")
 
 (defparameter *violation-function* 'blame
