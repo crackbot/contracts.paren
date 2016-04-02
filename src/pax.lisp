@@ -32,38 +32,57 @@
           (format stream "~%~A" (mgl-pax::massage-docstring doc-string)))
         (terpri stream)))))
 
-(define-locative-type psmacro ())
+;; ParenScript macro
 
-(defmethod locate-object (symbol (locative-type (eql 'psmacro)) locative-args)
+(defparameter *docstrings* nil)
+
+(defun get-docstrings ()
+  (when (not *docstrings*)
+    (setf *docstrings* (docparser:parse :contracts.paren)))
+  *docstrings*)
+
+(docparser:define-parser ps:defpsmacro (name (&rest args) &rest body)
+  (let ((docstring (if (stringp (first body))
+                       (first body)
+                       nil)))
+    (make-instance 'docparser::macro-node
+                   :name name
+                   :docstring docstring
+                   :lambda-list args)))
+
+(define-locative-type combinator ())
+
+(defmethod locate-object (symbol (locative-type (eql 'combinator)) locative-args)
   (make-reference symbol (cons locative-type locative-args)))
 
-(defmethod locate-and-document (symbol (locative-type (eql 'psmacro))
+(defmethod locate-and-document (symbol (locative-type (eql 'combinator))
                                 locative-args stream)
-  (let ((arglist (gethash symbol ps::*MACRO-TOPLEVEL-LAMBDA-LIST*)))
+  (let* ((arglist (gethash symbol ps::*MACRO-TOPLEVEL-LAMBDA-LIST*))
+         (qres (docparser:query (get-docstrings)
+                                :package-name :contracts.paren
+                                :symbol-name symbol))
+         (doc-string (docparser:node-docstring (aref qres 0))))
     (mgl-pax::locate-and-print-bullet locative-type locative-args symbol stream)
     ; (format stream "*")
     (write-char #\Space stream)
     (mgl-pax::print-arglist arglist stream)
     (write-char #\Space stream)
+
+    (when doc-string
+          (terpri stream)
+          (format stream "~%~A" (mgl-pax::massage-docstring doc-string)))
+    
     (terpri stream)))
-  ;; (let ((arglist (swank-backend:arglist symbol)))
-  ;;   (mgl-pax::print-arglist arglist stream)
-  ;;   (terpri stream)))
-  ;;   (mgl-pax::with-argument-symbols ((mgl-pax::macro-arg-names arglist))
-  ;;     (mgl-pax::maybe-print-docstring symbol 'function stream))))
 
-;; (defmethod locate-and-find-source (symbol (locative-type (eql 'psmacro))
-;;                                    locative-args)
-;;   (declare (ignore locative-args))
-;;   (find-source (macro-function symbol)))
+;; Generate README.md
+
+(defun generate-readme ()
+  (let* ((sys-dir (asdf:system-source-directory :contracts.paren))
+         (readme (merge-pathnames sys-dir "README.md")))
+    (with-output-to-file (out readme :if-exists :supersede)
+      (mgl-pax:document @main-manual :stream out :format :markdown))))
 
 
-;; (defmethod locate-object (symbol (locative-type (eql 'contract)) locative-args)
-;;   (make-reference symbol (cons locative-type locative-args)))
 
-;; (defmethod locate-and-document (symbol (locative-type (eql 'contract))
-;;                                 locative-args stream)
-;;     (format stream "- [contract] *")
-;;     (mgl-pax::print-name (prin1-to-string symbol) stream)
-;;     (format stream "*")
-;;     (terpri stream))
+
+  

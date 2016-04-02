@@ -6,17 +6,18 @@
 contract easily, combinator takes contract(s) as input and return a new
 contract."
 
-  (instanceof/c psmacro)
-  (or/c psmacro)
-  (and/c psmacro)
-  (not/c psmacro)
-  (listof/c psmacro)
-  (oneof/c psmacro)
-  (list/c psmacro)
-  (object/c psmacro)
-  (maybe/c psmacro))
+  (instanceof/c combinator)
+  (or/c combinator)
+  (and/c combinator)
+  (not/c combinator)
+  (listof/c combinator)
+  (oneof/c combinator)
+  (list/c combinator)
+  (object/c combinator)
+  (maybe/c combinator))
 
 (defpsmacro instanceof/c (cls)
+  "Returns contract that checks if ARG is an instance of CLS"
   (let ((name (gensym)))
     `(lambda (,name)
        (instanceof ,name ,cls))))
@@ -35,7 +36,7 @@ check"
          res))))
 
 (defpsmacro and/c (&rest preds)
-  "(>> (and/c intp bigger-than-five)) value should pass all
+  "(>> (and/c intp bigger-than-five-p)) value should pass all
 predicates"
   (let ((name (gensym)))
     `(lambda (arg)

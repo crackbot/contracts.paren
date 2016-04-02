@@ -401,41 +401,64 @@ Combinators are parenscript macros used to combine more than one
 contract easily, combinator takes contract(s) as input and return a new
 contract.
 
-<a id='x-28CONTRACTS-2EPAREN-3AINSTANCEOF-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3AINSTANCEOF-2FC-20-28CONTRACTS-2EPAREN-3A-3ACOMBINATOR-29-29'></a>
 
-- [psmacro] **INSTANCEOF/C** *CLS* 
+- [combinator] **INSTANCEOF/C** *CLS* 
 
-<a id='x-28CONTRACTS-2EPAREN-3AOR-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
+    Returns contract that checks if `ARG` is an instance of `CLS`
 
-- [psmacro] **OR/C** *&REST PREDS* 
+<a id='x-28CONTRACTS-2EPAREN-3AOR-2FC-20-28CONTRACTS-2EPAREN-3A-3ACOMBINATOR-29-29'></a>
 
-<a id='x-28CONTRACTS-2EPAREN-3AAND-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
+- [combinator] **OR/C** *&REST PREDS* 
 
-- [psmacro] **AND/C** *&REST PREDS* 
+    (>> (or/c intp floatp)) value should pass at least one predicate
+    check
 
-<a id='x-28CONTRACTS-2EPAREN-3ANOT-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3AAND-2FC-20-28CONTRACTS-2EPAREN-3A-3ACOMBINATOR-29-29'></a>
 
-- [psmacro] **NOT/C** *CONTRACT* 
+- [combinator] **AND/C** *&REST PREDS* 
 
-<a id='x-28CONTRACTS-2EPAREN-3ALISTOF-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
+    (>> (and/c intp bigger-than-five-p)) value should pass all
+    predicates
 
-- [psmacro] **LISTOF/C** *PRED* 
+<a id='x-28CONTRACTS-2EPAREN-3ANOT-2FC-20-28CONTRACTS-2EPAREN-3A-3ACOMBINATOR-29-29'></a>
 
-<a id='x-28CONTRACTS-2EPAREN-3AONEOF-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
+- [combinator] **NOT/C** *CONTRACT* 
 
-- [psmacro] **ONEOF/C** *&REST PREDS* 
+<a id='x-28CONTRACTS-2EPAREN-3ALISTOF-2FC-20-28CONTRACTS-2EPAREN-3A-3ACOMBINATOR-29-29'></a>
 
-<a id='x-28CONTRACTS-2EPAREN-3ALIST-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
+- [combinator] **LISTOF/C** *PRED* 
 
-- [psmacro] **LIST/C** *&REST PREDS* 
+    (>> (listof/c intp)) value should be a list (array) and each list
+    value should pass a predicate
 
-<a id='x-28CONTRACTS-2EPAREN-3AOBJECT-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3AONEOF-2FC-20-28CONTRACTS-2EPAREN-3A-3ACOMBINATOR-29-29'></a>
 
-- [psmacro] **OBJECT/C** *&REST PREDS* 
+- [combinator] **ONEOF/C** *&REST PREDS* 
 
-<a id='x-28CONTRACTS-2EPAREN-3AMAYBE-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
+    (>> (oneof/c intp floatp)) value should be a list and pass at least
+    one predicate
 
-- [psmacro] **MAYBE/C** *PRED* 
+<a id='x-28CONTRACTS-2EPAREN-3ALIST-2FC-20-28CONTRACTS-2EPAREN-3A-3ACOMBINATOR-29-29'></a>
+
+- [combinator] **LIST/C** *&REST PREDS* 
+
+    (>> (list/c intp intp intp) intp) Produces a contract for a
+    list (array). The number of elements in the list must match the number
+    of arguments supplied to list/c, and each element of the list must
+    match the corresponding contract.
+
+<a id='x-28CONTRACTS-2EPAREN-3AOBJECT-2FC-20-28CONTRACTS-2EPAREN-3A-3ACOMBINATOR-29-29'></a>
+
+- [combinator] **OBJECT/C** *&REST PREDS* 
+
+    (>> (object/c :value intp :another floatp) any)
+
+<a id='x-28CONTRACTS-2EPAREN-3AMAYBE-2FC-20-28CONTRACTS-2EPAREN-3A-3ACOMBINATOR-29-29'></a>
+
+- [combinator] **MAYBE/C** *PRED* 
+
+    (maybe/c intp) is equal to (or/c undefp intp)
 
   [0d79]: #x-28CONTRACTS-2EPAREN-3A-40CONTRACTS-COMBINATORS-20MGL-PAX-3ASECTION-29 "Contracts combinators"
   [1fde]: #x-28-22contracts-2Eparen-22-20ASDF-2FSYSTEM-3ASYSTEM-29 "(\"contracts.paren\" ASDF/SYSTEM:SYSTEM)"
