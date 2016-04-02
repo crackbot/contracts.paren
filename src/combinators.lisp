@@ -11,6 +11,7 @@
   - >>i named dependent contracts, where names you give to contracts
       can be used in subcontracts or/and :pre :post clauses"
 
+  (remove-tl-contract function)
   (@flat-contracts section)
   (@full-contracts section)
   (@named-contracts section))
@@ -44,7 +45,8 @@
 ```lisp
   (>>* (domain contracts)
        (optional / keywords / rest)
-       :pre () :post ()
+       :pre ()
+       :post ()
        range contract)
 ```
 
@@ -85,13 +87,12 @@
       res))
 ```")
 
-(defsection @named-contracts (:title "Named contracts - not implemented")
+(defsection @named-contracts (:title "Named contracts - not fully implemented")
   "Named contracts is similar to optional combinator with the
-  difference that the ->i contract combinator differs from the ->*
-  combinator in that each argument and result is named and these names
-  can be used in the subcontracts and in the pre-/post-condition
-  clauses. In other words, ->i expresses dependencies among arguments
-  and results.
+  difference that each argument and result is named and these names
+  can be used in subcontracts and in pre-/post-condition clauses. In
+  other words ->i combinator expresses dependencies among arguments,
+  results and environment.
 
   Combinator signature is:
 
@@ -103,27 +104,48 @@
        (result contract))
 ```
 
-  Example:
+  Few examples:
+
+  Check that input X is a number and output RES is a number that is at
+  least a double of X.
+
+```
+  (>>i ((x numberp))
+       (res (x) (and/c numberp (>=/c (* x 2)))))
+```
+
+  Check that X is a number, Y is number greater or equal than X.
+  If :A keyword is given it should be a number. If :B is also given it
+  should be greater or equal than :A. RESULT is a number that is
+  greater or equal than sum of X and Y.
 
 ```lisp
-  (->i :pre () (set! c0 count)
-       ((x number?)
+  (>>i ((x numberp)
         (y (x) (>=/c x)))
-       (:a (a number?)
+       (:a (a numberp)
         :b (b (a) (>=/c a)))
-       (result (x y) (and/c number? (>=/c (+ x y))))
-       :post (id nn result) (string=? (name id) nn))
+       (result (x y) (and/c numberp (>=/c (+ x y)))))
 ```
-")
+
+```lisp
+  (>>i ((x intp)
+        (y (x) (eql/c (+ x x))))
+       ()
+       (result intp))
+```
+
+  Note that contract's names are mandatory for both inputs and
+  outputs.")
 
 (defparameter *violation-function* 'blame
   "Function that is called when contract violation is detected, it's
-  arguments are based on combinator type")
+  called with one argument that is an object. Exact object keys and
+  values are based on combinator type.")
 
 (defvar *supported-combinators* '(>> >>* >>i)
   "Supported combinator types")
 
-(defstruct contract variable contract type)
+(defstruct contract variable contract type alias deps)
 
 (defun remove-tl-contract (forms)
   "Given forms it will remove any top-level contracts found in it"
@@ -133,7 +155,7 @@
     forms))
 
 (defun parse-function-with-combinator (body)
-  "Parse function with combinator into parts"
+  "Parse function body with cntract combinator into parts"
   (let* ((docstring (and (cdr body) (stringp (car body)) (car body)))
          (combinator (if docstring
                        (cadr body)
@@ -151,23 +173,43 @@
   "Check if combinator is supported"
   (find comb *supported-combinators* :test #'eql))
 
-(defun construct-contacts (vars contracts &key (type :input))
+(defun construct-contacts (combinator-type vars contracts &key (type :input))
   "Given list of vars and contracts it will construct a list of
-contract strutures. Type can be :input or :output."
+contract strutures. Length of both lists should be equal. The way
+contract struct is created is based on combinator type, different
+combinators expect different syntax of individual contract forms."
   (iter:iter
     (iter:for var iter:in vars)
     (iter:for contract iter:in contracts)
-    (iter:collect (make-contract :variable var
-                                 :contract contract
-                                 :type type))))
+    (let ((ctr (make-single-contract combinator-type var contract)))
+      (setf (contract-type ctr) type)
+      (iter:collect ctr))))
 
-(defun parse-combinator (combinator)
-  "Parse combinator into different values based on combinator type"
-  (let ((combinator-type (car combinator)))
-    (parse-combinator-type combinator-type combinator)))
+(defun parse-named-contract (contract)
+  (assert (and (listp contract)
+               (or (eq (length contract) 2)
+                   (eq (length contract) 3))))
+  (destructuring-bind (name deps &optional ctr)
+      contract
+    (when (not ctr)
+      (setf ctr deps
+            deps nil))
+    (values ctr name deps)))
 
-(defgeneric input-contracts (type combinator lambda-list)
-  (:documentation ""))
+(defgeneric make-single-contract (combinator-type var contract)
+  (:documentation "Parse single contract form"))
+
+(defmethod make-single-contract (combinator-type var contract)
+  (make-contract :variable var
+                 :contract contract))
+
+(defmethod make-single-contract ((combinator-type (eql '>>i)) var contract)
+  (multiple-value-bind (cnt alias deps)
+      (parse-named-contract contract)
+    (make-contract :variable var
+                   :contract cnt
+                   :alias alias
+                   :deps deps)))
 
 (defun input-contracts-for-requireds (combinator-type combinator lambda-list construct-more-fn)
   (multiple-value-bind (requireds optionals rest? rest keys? keys allow? aux?
@@ -177,9 +219,12 @@ contract strutures. Type can be :input or :output."
         (parse-combinator-type combinator-type combinator)
       (declare (ignore ctype output))
       (assert (eql (length requireds) (length inputs-contracts)))
-      (let ((pos/c (construct-contacts requireds inputs-contracts))
+      (let ((pos/c (construct-contacts combinator-type requireds inputs-contracts))
             (additional/c (funcall construct-more-fn more-contracts optionals keys rest)))
         (append pos/c additional/c)))))
+
+(defgeneric input-contracts (type combinator lambda-list)
+  (:documentation "Construct input contracts based on combinator type"))
 
 (defmethod input-contracts ((combinator-type (eql '>>)) combinator lambda-list)
   "PS Input contract forms for >> combinator"
@@ -204,7 +249,7 @@ contract strutures. Type can be :input or :output."
             plist with input variable name and a contract."
            (when (not (listp rest))
              (setf rest (list rest)))
-           ;; since checks are optional, don't check it
+           ;; since checks for key args are optional, don't check it
            ;; (assert (eql (/ (length more-contracts) 2)
            ;;              (apply #'+ (mapcar #'length
            ;;                                 (list optionals keys rest)))))
@@ -213,9 +258,7 @@ contract strutures. Type can be :input or :output."
                (dolist (var type)
                  (when-let ((contract (getf more-contracts
                                             (alexandria:make-keyword var))))
-                   (pushnew (make-contract :variable var
-                                           :contract contract
-                                           :type :input)
+                   (pushnew (make-single-contract combinator-type var contract)
                             res))))
              res)))
   (input-contracts-for-requireds combinator-type
@@ -225,13 +268,32 @@ contract strutures. Type can be :input or :output."
 
 (defmethod input-contracts ((combinator-type (eql '>>i)) combinator lambda-list)
   "PS Input contract forms for >>i combinator"
-  (input-contracts '>> combinator lambda-list))
+  (flet ((more-contracts-fn (more-contracts optionals keys rest)
+           (when (not (listp rest))
+             (setf rest (list rest)))
+           (let ((res (list)))
+             (dolist (type (list optionals keys rest))
+               (dolist (var type)
+                 (when-let ((contract (getf more-contracts
+                                            (alexandria:make-keyword var))))
+                   (pushnew (make-single-contract combinator-type var contract)
+                            res))))
+             res)))
+    (input-contracts-for-requireds combinator-type
+                                   combinator
+                                   lambda-list
+                                   #'more-contracts-fn)))
+
+(defun parse-combinator (combinator)
+  "Parse combinator into different values based on combinator type"
+  (let ((combinator-type (car combinator)))
+    (parse-combinator-type combinator-type combinator)))
 
 (defgeneric parse-combinator-type (type combinator)
-  (:documentation ""))
+  (:documentation "Parse combinator into parts."))
 
 (defmethod parse-combinator-type ((combinator-type (eql '>>i)) combinator)
-  (parse-combinator-type '>> combinator))
+  (parse-combinator-type '>>* combinator))
 
 (defmethod parse-combinator-type ((combinator-type (eql '>>*)) combinator)
   (let* ((output-contract (last combinator))
@@ -256,14 +318,57 @@ contract strutures. Type can be :input or :output."
         ; (inputs-contracts (subseq combinator 1 (- (length combinator) 1))))
       (values combinator-type positional-input output-contract keyword-input))))
 
-(defun build-input-contracts (lambda-list combinator)
-  "Given function lambda list and function combinator build the
-contract description"
-  (input-contracts (car combinator) combinator lambda-list))
+;;;; envs
 
-(defun contract-check-form (contract)
+(defun build-contracts-env (contracts)
   ""
-  (list (contract-contract contract) (contract-variable contract)))
+  (let ((res))
+    (dolist (ctr contracts)
+      (when (contract-alias ctr)
+        (pushnew `(setf ,(ps-gensym)
+                        ,(contract-alias ctr))
+                 res)))
+    res))
+
+(defun create-contracts-env (contracts)
+  "Environment right now is represented as a list of two plists.
+
+(:x :js123)
+(:hello :x)"
+  (let ((aliases (list))
+        (toplevel (list)))
+    (dolist (ctr contracts)
+      (when-let ((alias (contract-alias ctr)))
+        (setf (getf aliases alias)
+              (ps-gensym))
+        (setf (getf toplevel (contract-variable ctr))
+              alias)))
+    (list toplevel aliases)))
+     
+(defun compile-contracts-env (env)
+  (let ((res))
+    (destructuring-bind (toplevel aliases)
+        env
+      (alexandria:doplist (key val toplevel)
+        (pushnew (list 'setf
+                       (getf aliases val)
+                       key)
+                 res)))
+    res))
+
+(defun env-compile-contract-form (env contract deps)
+  (if (not env)
+      contract
+      (destructuring-bind (toplevel aliases)
+          env
+        (declare (ignore toplevel))
+        (dolist (dep deps)
+          (nsubst (getf aliases dep)
+                  dep
+                  contract))
+        contract)))
+
+;;;;
 
 (defun blame-object (defun-name contract)
   "Creates a list with blame info, that is later converted into
@@ -272,17 +377,19 @@ javascript object and can be used for contract violation message"
                             (format str "~A" (contract-contract contract))))
          (defun-string-name (or (and (stringp defun-name) defun-name)
                                 (symbol-name defun-name)))
-         (obj (cond ((eql (contract-type contract) :input)
-                     (list :type "domain"
+         (obj (case (contract-type contract)
+                (:input (list :type "domain"
                            :function defun-string-name
                            :variable (symbol-name (contract-variable contract))
                            :given (contract-variable contract)
                            :expected contract-string))
-                    ((eql (contract-type contract) :output)
-                     (list :type "range"
+                (:output (list :type "range"
                            :function defun-string-name
                            :promised contract-string
-                           :produced (contract-variable contract))))))
+                           :produced (contract-variable contract)))
+                (t (list :type "condition"
+                         :function defun-string-name
+                         :check contract-string)))))
     (cons 'create obj)))
 
 (defun flat-contractp (contract)
@@ -300,10 +407,10 @@ this:
       (not (combinator-supported-p (car (contract-contract contract))))
       t))
 
-(defun check-flat-contract-form (defun-name contract)
+(defun check-flat-contract-form (env defun-name contract)
   ""
   (let* ((err (list *violation-function* (blame-object defun-name contract)))
-         (contract-form (contract-check-form contract))
+         (contract-form (contract-check-form env contract))
          (not-form (cons 'not (list contract-form))))
     (list 'when not-form err)))
 
@@ -322,68 +429,76 @@ this:
       (parse-combinator (contract-contract contract))
     (length pos-inputs)))
 
-(defun wrap-into-combinator (defun-name contract)
+(defun wrap-into-combinator (env defun-name contract)
   ""
-  (let* ((var (contract-variable contract))
+  (let* ((env nil)
+         (var (contract-variable contract))
          (var-fun (ps-gensym))
          (var-res (ps-gensym)))
+         
     (multiple-value-bind (arg-forms arg-names)
         ; (error (combinator-inputs-num contract))
         (setup-temp-args (combinator-inputs-num contract))
-      `(progn
-         (setf ,var-fun ,var)
-         (setf ,var (lambda ()
-                      (var args (chain *array prototype slice (call arguments 0)))
-                      ,arg-forms
-                      ,@(build-input-checks defun-name arg-names (contract-contract contract))
-                      (var ,var-res (chain ,var-fun (apply this args)))
-                      ,(build-output-checks defun-name arg-names (list var-res) (contract-contract contract))
-                      ,var-res))))))
+      (let ((output-contracts (build-output-contracts arg-names (list var-res) (contract-contract contract))))
+        `(progn
+           (setf ,var-fun ,var)
+           (setf ,var (lambda ()
+                        (var args (chain *array prototype slice (call arguments 0)))
+                        ,arg-forms
+                        ,@(build-input-checks env defun-name arg-names (contract-contract contract))
+                        (var ,var-res (chain ,var-fun (apply this args)))
+                        ,(check-form-for-contract env defun-name (car output-contracts))
+                        ,var-res)))))))
 
-(defun check-form-for-contract (defun-name contract)
+(defun build-input-contracts (lambda-list combinator)
+  "Given function lambda list and function combinator build the
+contract description"
+  (input-contracts (car combinator) combinator lambda-list))
+
+(defun contract-check-form (env contract)
+  ""
+  (list (env-compile-contract-form env
+                                   (contract-contract contract)
+                                   (contract-deps contract))
+        (contract-variable contract)))
+
+(defun check-form-for-contract (env defun-name contract)
   ""
   (if (flat-contractp contract)
-      (check-flat-contract-form defun-name contract)
-      (wrap-into-combinator defun-name contract)))
+      (check-flat-contract-form env defun-name contract)
+      (progn
+        (when (eql (car contract) '>>i)
+          (error "not supported for >>i yet"))
+        (wrap-into-combinator env defun-name contract))))
 
-(defun build-input-checks (defun-name lambda-list combinator)
+(defun build-input-checks (env defun-name lambda-list combinator)
   ""
-  (mapcar (alexandria:curry #'check-form-for-contract defun-name)
+  (mapcar (alexandria:curry #'check-form-for-contract env defun-name)
           (build-input-contracts lambda-list combinator)))
 
-(defun dependant-contract-check (defun-name input-lambda-list contract)
-  "Build output check forms for dependant contract >>i"
-  (let ((fun (contract-contract contract))
-        (contract-result-name (ps-gensym)))
-  `(progn
-     (let ((,contract-result-name ,fun))
-       (when (not ((,contract-result-name ,@input-lambda-list) ,(contract-variable contract)))
-         ,(list *violation-function* (blame-object defun-name contract)))))))
+(defun input-checks-for-contracts (env defun-name contracts)
+  (mapcar (alexandria:curry #'check-form-for-contract env defun-name)
+          contracts))
 
-(defun build-output-checks (defun-name input-lambda-list output-lambda-list combinator)
-  "Build checks for function output"
+(defun build-output-contracts (input-lambda-list output-lambda-list combinator)
   (multiple-value-bind (ctype pos-inputs output key-inputs)
       (parse-combinator combinator)
-    (declare (ignore ctype pos-inputs key-inputs))
-    
-    (let ((contract (make-contract :variable (car output-lambda-list)
-                                   :contract (car output)
-                                   :type :output)))
-      (if (eql (car combinator) '>>i)
-          (dependant-contract-check defun-name input-lambda-list contract)
-          (check-form-for-contract defun-name contract)))))
+    (construct-contacts (car combinator)
+                        output-lambda-list
+                        output)))
 
-(defun combinator-supports-pre-post (comb)
+(defun combinator-supports-pre-post-p (comb)
   (or (eql comb '>>*) (eql comb '>>i)))
 
 (defun build-env-clause (defun-name clause combinator)
-  (when (combinator-supports-pre-post (car combinator))
+  ""
+  (when (combinator-supports-pre-post-p (car combinator))
     (when-let ((pos (position clause combinator)))
       (let* ((contract (nth (+ 1 pos) combinator))
-             (form (check-form-for-contract defun-name
+             (form (check-form-for-contract nil defun-name
                                             (make-contract :variable nil
                                                            :contract contract
-                                                           :type :input))))
+                                                           :type clause))))
         (setf combinator (delete contract combinator))
         (setf combinator (delete clause combinator))
         form))))
@@ -391,9 +506,15 @@ this:
 (defun build-pre (defun-name combinator)
   "If combinator type supports :pre clause it will build appropriate
   verification code."
+  (when (and (eql (car combinator) '>>i)
+             (find :pre combinator))
+    (error ":pre is not supported yet for >>i"))
   (build-env-clause defun-name :pre combinator))
 
 (defun build-post (defun-name combinator)
   "If combinator type supports :post clause it will build appropriate
   verification code."
+  (when (and (eql (car combinator) '>>i)
+             (find :pre combinator))
+    (error ":post is not supported yet for >>i"))
   (build-env-clause defun-name :post combinator))

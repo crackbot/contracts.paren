@@ -71,18 +71,18 @@ body should be a contract."
   (defun/contract psmacro)
   
   "There are a number of variables you can configure. Most important
-one is *VIOLATION-FUNCTION*, it is called in javascript env when
-contract is violated. You can use something basic as a starting point, like
+one is *VIOLATION-FUNCTION*, it gets called when contract is
+violated. You can use something basic as a starting point, like
 
 ```javascript
-function blame () {
-    var args = 
+function blame (obj) {
+    console.log(\"contract violated\");
+    console.log(obj.given);
+    console.log(obj.expected);
 }
 ```
 "
-
   (*violation-function* variable)
-
   (*ignore-contracts* variable))
 
 (defparameter *ignore-contracts* nil
@@ -108,32 +108,36 @@ function blame () {
   function returns an integer too."
 
   (if *ignore-contracts*
-    `(lambda ,lambda-list ,@(remove-tl-contract body))
-    (multiple-value-bind (docstring contract eff-body)
-        (parse-function-with-combinator body)
-      (let ((result (ps-gensym)))
-        `(lambda ,lambda-list
-           ,docstring
-           ,(build-pre "lambda" contract)
-           ,@(build-input-checks "lambda" lambda-list contract)
-           (var ,result (chain (lambda () ,@eff-body) (apply this)))
-           ,(build-output-checks "lambda" lambda-list (list result) contract)
-           ,(build-post "lambda" contract)
-           ,result)))))
+      `(lambda ,lambda-list ,@(remove-tl-contract body))
+      (append '(lambda)
+              (create-defun-forms "lambda" lambda-list body))))
 
 (defpsmacro defun/contract (name lambda-list &body body)
   "Define function with a contract. Works the same way as
   lambda/contract, first body form is a contract."
   (if *ignore-contracts*
-    `(defun ,name ,lambda-list ,@(remove-tl-contract body))
-    (multiple-value-bind (docstring contract eff-body)
-        (parse-function-with-combinator body)
-      (let ((result (ps-gensym)))
-        `(defun ,name ,lambda-list
-           ,docstring
-           ,(build-pre name contract)
-           ,@(build-input-checks name lambda-list contract)
-           (var ,result (chain (lambda () ,@eff-body) (apply this)))
-           ,(build-output-checks name lambda-list (list result) contract)
-           ,(build-post name contract)
-           ,result)))))
+      `(defun ,name ,lambda-list ,@(remove-tl-contract body))
+      (append `(defun ,name)
+              (create-defun-forms name lambda-list body))))
+
+(defun create-defun-forms (name lambda-list body)
+  "Create new function based on given function name lambda-list and
+body. New function will parse body looking for contracts
+definitions. Each intput and output contract will be converted into
+parenscript code to check the consistency between the contract and
+environment during the execution of the function."
+  (multiple-value-bind (docstring contract eff-body)
+      (parse-function-with-combinator body)
+    (let* ((result (ps-gensym))
+           (input-contracts (build-input-contracts lambda-list contract))
+           (output-contracts (build-output-contracts lambda-list (list result) contract))
+           (env (create-contracts-env input-contracts)))
+      `(,lambda-list
+         ,docstring
+         ,@(compile-contracts-env env)
+         ,@(input-checks-for-contracts env name input-contracts)
+         ,(build-pre name contract)
+         (var ,result (chain (lambda () ,@eff-body) (apply this)))
+         ,(check-form-for-contract env name (car output-contracts))
+         ,(build-post name contract)
+         ,result))))

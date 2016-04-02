@@ -10,6 +10,10 @@
            :or/c
            :and/c
            :not/c
+           :eql/c
+           :=/c
+           :<=/c
+           :>=/c
            :listof/c
            :oneof/c
            :list/c

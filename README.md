@@ -1,4 +1,4 @@
-<a name='x-28SERVE-2EPAREN-3A-40MAIN-MANUAL-20MGL-PAX-3ASECTION-29'></a>
+<a id='x-28SERVE-2EPAREN-3A-40MAIN-MANUAL-20MGL-PAX-3ASECTION-29'></a>
 
 # Functions with contracts for Parenscript
 
@@ -9,16 +9,16 @@
 - [3 Contract types][4c4a]
     - [3.1 Flat contracts][ca08]
     - [3.2 Full contracts][c50a]
-    - [3.3 Named contracts - not implemented][c8ae]
+    - [3.3 Named contracts - not fully implemented][c8ae]
 - [4 Contracts runtime library][7e60]
 - [5 Contracts combinators][0d79]
 
 ###### \[in package CONTRACTS.PAREN\]
-<a name='x-28-22contracts-2Eparen-22-20ASDF-2FSYSTEM-3ASYSTEM-29'></a>
+<a id='x-28-22contracts-2Eparen-22-20ASDF-2FSYSTEM-3ASYSTEM-29'></a>
 
 ## 1 contracts.paren ASDF System Details
 
-- Version: 0.0.2
+- Version: 0.0.3
 - Description: Contracts for parenscript (javascript), inspired by Racket contracts.
 - Licence: The MIT License (MIT)
 - Author: Crackbot <thecrackbot@gmail.com>
@@ -60,7 +60,7 @@ so:
   (+ x y))
 ```
 
-To make this a function with contract you can use [`DEFUN/CONTRACT`][0319] form:
+To make this a function with contract you can use [`DEFUN/CONTRACT`][2d58] form:
 
 ```lisp
 (defun/contract sum (x y)
@@ -72,7 +72,7 @@ In the code above each **intp** is called a contract and **>>** sign
 is called a contract combinator. Right now there are three types of
 contract combinators, and numerous contracts that can be used.
 
-<a name='x-28CONTRACTS-2EPAREN-3A-40API-MANUAL-20MGL-PAX-3ASECTION-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3A-40API-MANUAL-20MGL-PAX-3ASECTION-29'></a>
 
 ## 2 Main API
 
@@ -81,43 +81,46 @@ API consists of two parenscript macros **defun/contract** and
 taking exactly the same lambda list and body. Except first form of the
 body should be a contract.
 
-<a name='x-28CONTRACTS-2EPAREN-3ALAMBDA-2FCONTRACT-20MGL-PAX-3APSMACRO-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3ALAMBDA-2FCONTRACT-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
 
-- [psmacro] ***LAMBDA/CONTRACT*** *LAMBDA-LIST &BODY BODY* 
+- [psmacro] **LAMBDA/CONTRACT** *LAMBDA-LIST &BODY BODY* 
 
-<a name='x-28CONTRACTS-2EPAREN-3ADEFUN-2FCONTRACT-20MGL-PAX-3APSMACRO-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3ADEFUN-2FCONTRACT-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
 
-- [psmacro] ***DEFUN/CONTRACT*** *NAME LAMBDA-LIST &BODY BODY* 
+- [psmacro] **DEFUN/CONTRACT** *NAME LAMBDA-LIST &BODY BODY* 
 
 There are a number of variables you can configure. Most important
-one is [`*VIOLATION-FUNCTION*`][78df], it is called in javascript env when
-contract is violated. You can use something basic as a starting point, like
+one is [`*VIOLATION-FUNCTION*`][37ab], it gets called when contract is
+violated. You can use something basic as a starting point, like
 
 ```javascript
-function blame () {
-    var args = 
+function blame (obj) {
+    console.log("contract violated");
+    console.log(obj.given);
+    console.log(obj.expected);
 }
 ```
 
 
-<a name='x-28CONTRACTS-2EPAREN-3A-2AVIOLATION-FUNCTION-2A-20VARIABLE-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3A-2AVIOLATION-FUNCTION-2A-20-28VARIABLE-29-29'></a>
 
 - [variable] **\*VIOLATION-FUNCTION\*** *BLAME*
 
     Function that is called when contract violation is detected, it's
-    arguments are based on combinator type
+    called with one argument that is an object. Exact object keys and
+    values are based on combinator type.
 
-<a name='x-28CONTRACTS-2EPAREN-3A-2AIGNORE-CONTRACTS-2A-20VARIABLE-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3A-2AIGNORE-CONTRACTS-2A-20-28VARIABLE-29-29'></a>
 
 - [variable] **\*IGNORE-CONTRACTS\*** *NIL*
 
     This is useful if you want to ignore contracts when compiling your
     definitions for production use and don't want to pay extra
     performance costs because of contracts. Setting this to **t** will
-    compile [`DEFUN/CONTRACT`][0319] and [`LAMBDA/CONTRACT`][c9be] as the usual defun and
+    compile [`DEFUN/CONTRACT`][2d58] and [`LAMBDA/CONTRACT`][6c4a] as the usual defun and
     lambda forms.
 
-<a name='x-28CONTRACTS-2EPAREN-3A-40CONTRACT-TYPES-20MGL-PAX-3ASECTION-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3A-40CONTRACT-TYPES-20MGL-PAX-3ASECTION-29'></a>
 
 ## 3 Contract types
 
@@ -131,7 +134,13 @@ There are three types of contracts:
     can be used in subcontracts or/and :pre :post clauses
 
 
-<a name='x-28CONTRACTS-2EPAREN-3A-40FLAT-CONTRACTS-20MGL-PAX-3ASECTION-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3AREMOVE-TL-CONTRACT-20FUNCTION-29'></a>
+
+- [function] **REMOVE-TL-CONTRACT** *FORMS*
+
+    Given forms it will remove any top-level contracts found in it
+
+<a id='x-28CONTRACTS-2EPAREN-3A-40FLAT-CONTRACTS-20MGL-PAX-3ASECTION-29'></a>
 
 ### 3.1 Flat contracts
 
@@ -153,7 +162,7 @@ Flat contract is the basic building block, most of the time you
   Flat contract does support all of the combinators, but not optional
   or rest arguments.
 
-<a name='x-28CONTRACTS-2EPAREN-3A-40FULL-CONTRACTS-20MGL-PAX-3ASECTION-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3A-40FULL-CONTRACTS-20MGL-PAX-3ASECTION-29'></a>
 
 ### 3.2 Full contracts
 
@@ -166,7 +175,8 @@ Combinator signature is:
 ```lisp
   (>>* (domain contracts)
        (optional / keywords / rest)
-       :pre () :post ()
+       :pre ()
+       :post ()
        range contract)
 ```
 
@@ -208,16 +218,15 @@ Domain and range contracts are required. If you provide optional or
 ```
 
 
-<a name='x-28CONTRACTS-2EPAREN-3A-40NAMED-CONTRACTS-20MGL-PAX-3ASECTION-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3A-40NAMED-CONTRACTS-20MGL-PAX-3ASECTION-29'></a>
 
-### 3.3 Named contracts - not implemented
+### 3.3 Named contracts - not fully implemented
 
 Named contracts is similar to optional combinator with the
-  difference that the ->i contract combinator differs from the ->\*
-  combinator in that each argument and result is named and these names
-  can be used in the subcontracts and in the pre-/post-condition
-  clauses. In other words, ->i expresses dependencies among arguments
-  and results.
+  difference that each argument and result is named and these names
+  can be used in subcontracts and in pre-/post-condition clauses. In
+  other words ->i combinator expresses dependencies among arguments,
+  results and environment.
 
 Combinator signature is:
 
@@ -229,45 +238,162 @@ Combinator signature is:
        (result contract))
 ```
 
-Example:
+Few examples:
 
-```lisp
-  (->i :pre () (set! c0 count)
-       ((x number?)
-        (y (x) (>=/c x)))
-       (:a (a number?)
-        :b (b (a) (>=/c a)))
-       (result (x y) (and/c number? (>=/c (+ x y))))
-       :post (id nn result) (string=? (name id) nn))
+Check that input X is a number and output `RES` is a number that is at
+  least a double of X.
+
+```
+  (>>i ((x numberp))
+       (res (x) (and/c numberp (>=/c (* x 2)))))
 ```
 
+Check that X is a number, Y is number greater or equal than X.
+  If :A keyword is given it should be a number. If :B is also given it
+  should be greater or equal than :A. `RESULT` is a number that is
+  greater or equal than sum of X and Y.
 
-<a name='x-28CONTRACTS-2EPAREN-3A-40CONTRACTS-RUNTIME-20MGL-PAX-3ASECTION-29'></a>
+```lisp
+  (>>i ((x numberp)
+        (y (x) (>=/c x)))
+       (:a (a numberp)
+        :b (b (a) (>=/c a)))
+       (result (x y) (and/c numberp (>=/c (+ x y)))))
+```
+
+```lisp
+  (>>i ((x intp)
+        (y (x) (eql/c (+ x x))))
+       ()
+       (result intp))
+```
+
+  Note that contract's names are mandatory for both inputs and
+  outputs.
+
+<a id='x-28CONTRACTS-2EPAREN-3A-40CONTRACTS-RUNTIME-20MGL-PAX-3ASECTION-29'></a>
 
 ## 4 Contracts runtime library
 
 Some basic contracts are included with this library:
 
+<a id='x-28CONTRACTS-2EPAREN-3AANYP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] ANYP  
+
+    Returns t for any argument
+
+<a id='x-28CONTRACTS-2EPAREN-3AHASP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] HASP *KEY OBJ* 
+
+    Checks if object has property key
+
+<a id='x-28ALEXANDRIA-2E0-2EDEV-3AEMPTYP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] EMPTYP *OBJ* 
+
+    True if var is empty, obj might be one of: string array
+    arguments object
+
+<a id='x-28CONTRACTS-2EPAREN-3AELEMENTP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] ELEMENTP *OBJ* 
+
+    Returns true if object is a DOM element.
+
+<a id='x-28CONTRACTS-2EPAREN-3ATRUEP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] TRUEP *OBJ* 
+
+    Return true if `OBJ` equals true.
+
+<a id='x-28PARENSCRIPT-3ABOOLEANP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] BOOLEANP *OBJ* 
+
+    Return true if `OBJ` is boolean.
+
+<a id='x-28NUMBERP-20FUNCTION-29'></a>
+
+- [function] **NUMBERP** *OBJECT*
+
+    Return true if OBJECT is a `NUMBER`, and `NIL` otherwise.
+
+<a id='x-28CONTRACTS-2EPAREN-3ANANP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] NANP *OBJ* 
+
+    Return true if `OBJ` is NaN value.
+
+<a id='x-28CONTRACTS-2EPAREN-3AEVENTP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] EVENTP *OBJ* 
+
+    Return true if `OBJ` is an instance of Event class.
+
+<a id='x-28CONTRACTS-2EPAREN-3ACLASSP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] CLASSP *OBJ* 
+
+    Return true if `OBJ` is a class. There is no special way to define classes in javascript, and what's called a javascript class is represented as a function. Internally this function checks if `OBJ` is a function.
+
+<a id='x-28PARENSCRIPT-3AOBJECTP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] OBJECTP *OBJ* 
+
+    Return true if `OBJ` is of type object.
+
+<a id='x-28CONTRACTS-2EPAREN-3ANULLP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] NULLP *OBJ* 
+
+    Return true if `OBJ` is null.
+
+<a id='x-28CONTRACTS-2EPAREN-3AUNDEFP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] UNDEFP *OBJ* 
+
+    Return true if `OBJ` is udefined.
+
+<a id='x-28ZEROP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] ZEROP *NUM* 
+
+    Return true if `NUM` equals to zero.
+
+<a id='x-28CONTRACTS-2EPAREN-3APOSITIVEP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] POSITIVEP *NUM* 
+
+    Return true if `NUM` is positive.
+
+<a id='x-28CONTRACTS-2EPAREN-3ANEGATIVEP-20-28CONTRACTS-2EPAREN-3A-3ASTATIC-PS-FUNCTION-20CONTRACTS-2EPAREN-3A-2ACONTRACTS-LIBRARY-2A-29-29'></a>
+
+- [contract] NEGATIVEP *NUM* 
+
+    Return true if `NUM` is negative.
+
 Using those and combinators can get you far, but when your
 application grows you may require custom contracts to be
-build. Defining your own contract is easy, you need to create a
+created. Defining your own contract is easy, you need to create a
 function that takes one argument and returns a boolean value.
 
-For example to create a contract that checks if argument is a `DOM` node
+For example to create a contract that checks if argument is a DOM node
 you can do the following:
 
 ```lisp
-defun nodep (obj)
+(defun nodep (obj)
   (if (eq (typeof *node) "object")
       (instanceof obj *node)
       (and obj
-           (eq (typeof o) "object")
-           (eq (chain o node-type) "number")
-           (eq (chain o node-name) "string"))))
+           (eq (typeof obj) "object")
+           (eq (chain obj node-type) "number")
+           (eq (chain obj node-name) "string"))))
 ```
 
 
-<a name='x-28CONTRACTS-2EPAREN-3A-40CONTRACTS-COMBINATORS-20MGL-PAX-3ASECTION-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3A-40CONTRACTS-COMBINATORS-20MGL-PAX-3ASECTION-29'></a>
 
 ## 5 Contracts combinators
 
@@ -275,50 +401,50 @@ Combinators are parenscript macros used to combine more than one
 contract easily, combinator takes contract(s) as input and return a new
 contract.
 
-<a name='x-28CONTRACTS-2EPAREN-3AINSTANCEOF-2FC-20MGL-PAX-3APSMACRO-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3AINSTANCEOF-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
 
-- [psmacro] ***INSTANCEOF/C*** *CLS* 
+- [psmacro] **INSTANCEOF/C** *CLS* 
 
-<a name='x-28CONTRACTS-2EPAREN-3AOR-2FC-20MGL-PAX-3APSMACRO-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3AOR-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
 
-- [psmacro] ***OR/C*** *&REST PREDS* 
+- [psmacro] **OR/C** *&REST PREDS* 
 
-<a name='x-28CONTRACTS-2EPAREN-3AAND-2FC-20MGL-PAX-3APSMACRO-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3AAND-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
 
-- [psmacro] ***AND/C*** *&REST PREDS* 
+- [psmacro] **AND/C** *&REST PREDS* 
 
-<a name='x-28CONTRACTS-2EPAREN-3ANOT-2FC-20MGL-PAX-3APSMACRO-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3ANOT-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
 
-- [psmacro] ***NOT/C*** *CONTRACT* 
+- [psmacro] **NOT/C** *CONTRACT* 
 
-<a name='x-28CONTRACTS-2EPAREN-3ALISTOF-2FC-20MGL-PAX-3APSMACRO-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3ALISTOF-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
 
-- [psmacro] ***LISTOF/C*** *PRED* 
+- [psmacro] **LISTOF/C** *PRED* 
 
-<a name='x-28CONTRACTS-2EPAREN-3AONEOF-2FC-20MGL-PAX-3APSMACRO-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3AONEOF-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
 
-- [psmacro] ***ONEOF/C*** *&REST PREDS* 
+- [psmacro] **ONEOF/C** *&REST PREDS* 
 
-<a name='x-28CONTRACTS-2EPAREN-3ALIST-2FC-20MGL-PAX-3APSMACRO-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3ALIST-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
 
-- [psmacro] ***LIST/C*** *&REST PREDS* 
+- [psmacro] **LIST/C** *&REST PREDS* 
 
-<a name='x-28CONTRACTS-2EPAREN-3AOBJECT-2FC-20MGL-PAX-3APSMACRO-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3AOBJECT-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
 
-- [psmacro] ***OBJECT/C*** *&REST PREDS* 
+- [psmacro] **OBJECT/C** *&REST PREDS* 
 
-<a name='x-28CONTRACTS-2EPAREN-3AMAYBE-2FC-20MGL-PAX-3APSMACRO-29'></a>
+<a id='x-28CONTRACTS-2EPAREN-3AMAYBE-2FC-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29'></a>
 
-- [psmacro] ***MAYBE/C*** *PRED* 
+- [psmacro] **MAYBE/C** *PRED* 
 
-  [0319]: #x-28CONTRACTS-2EPAREN-3ADEFUN-2FCONTRACT-20MGL-PAX-3APSMACRO-29 "(CONTRACTS.PAREN:DEFUN/CONTRACT MGL-PAX:PSMACRO)"
-  [0d79]: #x-28CONTRACTS-2EPAREN-3A-40CONTRACTS-COMBINATORS-20MGL-PAX-3ASECTION-29 "(CONTRACTS.PAREN:@CONTRACTS-COMBINATORS MGL-PAX:SECTION)"
+  [0d79]: #x-28CONTRACTS-2EPAREN-3A-40CONTRACTS-COMBINATORS-20MGL-PAX-3ASECTION-29 "Contracts combinators"
   [1fde]: #x-28-22contracts-2Eparen-22-20ASDF-2FSYSTEM-3ASYSTEM-29 "(\"contracts.paren\" ASDF/SYSTEM:SYSTEM)"
-  [3e8b]: #x-28CONTRACTS-2EPAREN-3A-40API-MANUAL-20MGL-PAX-3ASECTION-29 "(CONTRACTS.PAREN:@API-MANUAL MGL-PAX:SECTION)"
-  [4c4a]: #x-28CONTRACTS-2EPAREN-3A-40CONTRACT-TYPES-20MGL-PAX-3ASECTION-29 "(CONTRACTS.PAREN:@CONTRACT-TYPES MGL-PAX:SECTION)"
-  [78df]: #x-28CONTRACTS-2EPAREN-3A-2AVIOLATION-FUNCTION-2A-20VARIABLE-29 "(CONTRACTS.PAREN:*VIOLATION-FUNCTION* VARIABLE)"
-  [7e60]: #x-28CONTRACTS-2EPAREN-3A-40CONTRACTS-RUNTIME-20MGL-PAX-3ASECTION-29 "(CONTRACTS.PAREN:@CONTRACTS-RUNTIME MGL-PAX:SECTION)"
-  [c50a]: #x-28CONTRACTS-2EPAREN-3A-40FULL-CONTRACTS-20MGL-PAX-3ASECTION-29 "(CONTRACTS.PAREN:@FULL-CONTRACTS MGL-PAX:SECTION)"
-  [c8ae]: #x-28CONTRACTS-2EPAREN-3A-40NAMED-CONTRACTS-20MGL-PAX-3ASECTION-29 "(CONTRACTS.PAREN:@NAMED-CONTRACTS MGL-PAX:SECTION)"
-  [c9be]: #x-28CONTRACTS-2EPAREN-3ALAMBDA-2FCONTRACT-20MGL-PAX-3APSMACRO-29 "(CONTRACTS.PAREN:LAMBDA/CONTRACT MGL-PAX:PSMACRO)"
-  [ca08]: #x-28CONTRACTS-2EPAREN-3A-40FLAT-CONTRACTS-20MGL-PAX-3ASECTION-29 "(CONTRACTS.PAREN:@FLAT-CONTRACTS MGL-PAX:SECTION)"
+  [2d58]: #x-28CONTRACTS-2EPAREN-3ADEFUN-2FCONTRACT-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29 "(CONTRACTS.PAREN:DEFUN/CONTRACT (CONTRACTS.PAREN::PSMACRO))"
+  [37ab]: #x-28CONTRACTS-2EPAREN-3A-2AVIOLATION-FUNCTION-2A-20-28VARIABLE-29-29 "(CONTRACTS.PAREN:*VIOLATION-FUNCTION* (VARIABLE))"
+  [3e8b]: #x-28CONTRACTS-2EPAREN-3A-40API-MANUAL-20MGL-PAX-3ASECTION-29 "Main API"
+  [4c4a]: #x-28CONTRACTS-2EPAREN-3A-40CONTRACT-TYPES-20MGL-PAX-3ASECTION-29 "Contract types"
+  [6c4a]: #x-28CONTRACTS-2EPAREN-3ALAMBDA-2FCONTRACT-20-28CONTRACTS-2EPAREN-3A-3APSMACRO-29-29 "(CONTRACTS.PAREN:LAMBDA/CONTRACT (CONTRACTS.PAREN::PSMACRO))"
+  [7e60]: #x-28CONTRACTS-2EPAREN-3A-40CONTRACTS-RUNTIME-20MGL-PAX-3ASECTION-29 "Contracts runtime library"
+  [c50a]: #x-28CONTRACTS-2EPAREN-3A-40FULL-CONTRACTS-20MGL-PAX-3ASECTION-29 "Full contracts"
+  [c8ae]: #x-28CONTRACTS-2EPAREN-3A-40NAMED-CONTRACTS-20MGL-PAX-3ASECTION-29 "Named contracts - not fully implemented"
+  [ca08]: #x-28CONTRACTS-2EPAREN-3A-40FLAT-CONTRACTS-20MGL-PAX-3ASECTION-29 "Flat contracts"

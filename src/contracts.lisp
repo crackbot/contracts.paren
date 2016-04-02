@@ -47,6 +47,22 @@ predicates"
              (return)))
          res))))
 
+(defpsmacro eql/c (val)
+  "Check if val eql's arg"
+  `(lambda (arg)
+     (eql ,val arg)))
+
+(defpsmacro =/c (val)
+  `(eql/c ,val))
+
+(defpsmacro >=/c (val)
+  `(lambda (arg)
+     (>= ,val arg)))
+
+(defpsmacro <=/c (val)
+  `(lambda (arg)
+     (<= ,val arg)))
+
 (defpsmacro not/c (contract)
   `(lambda (arg)
      (not (,contract arg))))
