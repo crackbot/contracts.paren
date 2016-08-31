@@ -74,6 +74,42 @@ contract combinators, and numerous contracts that can be used.
 
 <a id='x-28CONTRACTS-2EPAREN-3A-40API-MANUAL-20MGL-PAX-3ASECTION-29'></a>
 
+### 1.1 Benefits
+
+This is the only library that provides such functionality for
+javascript language. Usage of contracts can save you time developing
+and debugging your application. Advatages that contracts provides are
+
+- runtime validation of function range and domain consistency
+- automatic documentation generation based on contract signature
+  
+  Looking at **sum** function above, it can generate documentation
+  string like this:
+  
+  "**SUM** is a function which takes two arguments, integer and integer
+  and returns an integer"
+
+- automatic tests generation based on contract signature
+
+  For example if you have a function like this
+  
+  ```lisp
+  (defun/contract sum-two-integers (x y)
+    (>> positivep positivep positivep)
+    (+ x y))
+  ```
+  
+  Based on contract signature we can generate a test which will pass
+  and fail, calling *sum-two-integers* with positive and negative
+  numbers.
+
+Libraries that use this library include
+
+- **react.paren** validating props when initializing components.
+- **actionflow** functions definitions
+- **plus.paren** define pseudo-classes with methods with contracts"
+- **s3minder** check buffers
+
 ## 2 Main API
 
 API consists of two parenscript macros **defun/contract** and
